@@ -65,11 +65,11 @@ class StudentProfileViewSet(ViewSet):
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
-        student = request.user
-        studentprofile = request.user.studentprofile
-        if student.is_staff or studentprofile.id == int(pk):
-            student = self.queryset.filter(id=pk).first()
-            return Response(self.student_profile_serializer(student).data)
+        student_ = request.student
+        student_profile = request.user.studentprofile
+        if student_.is_staff or student_profile.id == int(pk):
+            student_ = self.queryset.filter(id=pk).first()
+            return Response(self.student_profile_serializer(student_).data)
         else:
             return Response({}, status=status.HTTP_401_UNAUTHORIZED)
     

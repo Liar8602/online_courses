@@ -64,6 +64,7 @@ def user_register(request):
 
             profile.save()
             registered = True
+            django_logger.info('successful student registration!')
         else:
             all_errors = []
             for err_list in user_form.errors.values():
