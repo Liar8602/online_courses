@@ -30,10 +30,10 @@ def user_login(request):
         if user:
             if user.is_active:
                 login(request, user)
-                django_logger.info((f'successful user login: "{student.studentname}"'))
+                django_logger.info((f'successful user login: "{user.username}"'))
                 return HttpResponseRedirect(reverse('index'))
             else:
-                django_logger.info(f'try to login not active user: "{student.studentname}"')
+                django_logger.info(f'try to login not active user: "{user.username}"')
                 errors_string = 'WRONG ACCOUNT'
         else:
             django_logger.info(f'invalid login: "{username}" password: "{password}"')

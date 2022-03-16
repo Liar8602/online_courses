@@ -1,0 +1,19 @@
+{% load crispy_forms_tags %}
+
+{% block body_block %}
+    <h1>AVAILABLE COURSES</h1>
+    <ul class=items>
+        {%  if courses %}
+            {% for course in courses %}
+                <li><h2><a href="/main/item/{{ course.id }}">Title: <em>{{ course.title }}</em> &nbsp; &nbsp; Price:
+                    <em>{{ course.price }}</em>
+                    USD</a></h2>
+            {% endfor %}
+        {% else %}
+             <li><em>Unbelievable. No entries here so far</em>
+        {% endif %}
+    </ul>
+    <br><br>
+    <a href="/">Return to main page</a>
+    <br><br><br><br><br>
+{% endblock %}
