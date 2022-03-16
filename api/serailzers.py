@@ -24,9 +24,14 @@ class RegisterStudentSerializer(serializers.Serializer):
     first_name = serializers.CharField(max_length=80)
     last_name = serializers.CharField(max_length=80)
     email = serializers.CharField(
-        max_length=20,
-        required=False,
-        allow_blank=True,
-        allow_null=True,
-        default=''
+        max_length=70,   
         )
+
+
+class StudentUpdateSerializer(serializers.Serializer):
+    pk = serializers.PrimaryKeyRelatedField(queryset=StudentProfile.objects)
+    username = serializers.CharField(max_length=30, required=False)
+    password = serializers.CharField(max_length=20, required=False)
+    first_name = serializers.CharField(max_length=70,required=False)
+    last_name = serializers.CharField(max_length=70, required=False)
+    email= serializers.CharField(max_length=70, required=False)

@@ -16,6 +16,7 @@ def index(request):
 @login_required
 def user_logout(request):
     logout(request)
+    django_logger.info(f'successful user logout: "{request.student.studentname}"')
     return HttpResponseRedirect(reverse('index'))
 
 
@@ -29,8 +30,10 @@ def user_login(request):
         if user:
             if user.is_active:
                 login(request, user)
+                django_logger.info((f'successful user login: "{student.studentname}"'))
                 return HttpResponseRedirect(reverse('index'))
             else:
+                django_logger.info(f'try to login not active user: "{student.studentname}"')
                 errors_string = 'WRONG ACCOUNT'
         else:
             django_logger.info(f'invalid login: "{username}" password: "{password}"')
@@ -80,4 +83,5 @@ def user_register(request):
         'profile_form': profile_form,
         'registered': registered
     }
+    django_logger.info(f'successful user regisration: "{student_form.studentname}"')
     return render(request, 'registration.html', context=context)
