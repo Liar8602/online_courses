@@ -86,3 +86,26 @@ def user_register(request):
     }
     django_logger.info(f'successful user regisration: "{student_form.studentname}"')
     return render(request, 'registration.html', context=context)
+
+
+@login_required
+def courses_list(request):
+    context = {
+        'courses': list(Course.objects.all())
+    }
+    return render(request, 'courses_list.html', context=context)
+
+
+@login_required
+def course_detail(request, pk):
+    course = Course.objects.prefetch_related('lectures', 'schedules', 'registrations').get(pk=pk)
+    lectures = course.lectures
+    registrations = course.registrations
+    schedules = course.schedules
+    context = {
+        'course': course,
+        'lectures': lectures,
+        'registrations': len(registrations) if registrations else 0,
+        'schedules': schedules,
+    }
+    return render(request, 'course_detail.html', context=context)
