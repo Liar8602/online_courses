@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 
 
 class StudentProfile(models.Model):
-    student = models.OneToOneField(User, on_delete=models.CASCADE)
+    student = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student_profile')
     profile_pic = models.ImageField(upload_to='profile_pics',blank=True)
     category = models.CharField(max_length=50, null=True)
 
@@ -26,7 +26,7 @@ class Lecture(models.Model):
 
 class CourseRegistration(models.Model):
     id = models.IntegerField(primary_key=True)
-    student = models.ForeignKey(StudentProfile, related_name='students', on_delete=models.CASCADE)
+    student = models.ForeignKey(StudentProfile, related_name='courses_registrations', on_delete=models.CASCADE)
     course = models.ForeignKey(Course, related_name='registrations',on_delete=models.CASCADE)
 
 
