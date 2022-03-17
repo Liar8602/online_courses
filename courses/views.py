@@ -8,7 +8,7 @@ from django.contrib.auth import authenticate, login, logout
 
 from .forms import StudentForm, StudentProfileForm, CourseRegistrationForm
 from settings.settings import django_logger
-from courses.models import (Course, CourseRegistration)
+from courses.models import (Course, CourseRegistration, StudentProfile)
 
 
 def index(request):
@@ -122,30 +122,34 @@ def course_detail(request, pk):
 
 @login_required
 def course_register(request, course_id, student_id):
-    registered = False
+    student_registered = False
     errors_string = None
 
     if request.method == "POST":
-        register_form = CourseRegistrationForm(data=request.POST)
+        course_registration_form = CourseRegistrationForm(data=request.POST)
 
-        if register_form.is_valid():
-            register_form.save()
-            registered = True
+        if course_registration_form.is_valid():
+            course_registration_form.save()
+            student_registered = True
             django_logger.info('successful course registration!')
         else:
             all_errors = []
-            for err_list in register_form.errors.values():
+            for err_list in course_registration_form.errors.values():
                 all_errors.append(' '.join(err_list))
             errors_string = ' '.join(all_error)
     else:
         course_registration = CourseRegistration.objects.filter(student_id=student_id, course_id=course_id)
-        registered = True if course_registration else False
-        register_form = CourseRegistrationForm()
+        student_registered = True if course_registration else False
+        course_registration_form = CourseRegistrationForm(
+            initial={
+                'student': StudentProfile.objects.filter(pk=student_id).first(),
+                'course': Course.objects.filter(pk=course_id).first()
+            }
+        )
     
     context = {
-        'active': 'register',
         'errors': errors_string,
-        'register_form': register_form,
-        'registered': registered
+        'course_registration_form': course_registration_form,
+        'student_registered': student_registered
     }
     return render(request, 'course_registration.html', context=context)
