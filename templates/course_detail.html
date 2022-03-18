@@ -31,10 +31,15 @@
         {%  if scheduled %}
             <h2>Course will start: {{ scheduled }}</h2>
             {%  if student %}
-            <a class="nav-item nav-link"
-               href="{% url 'courses_app:course_register' course.id student.id %}">Register to course
-            </a>
-        {%  endif %}
+                {% if student_registred %}
+                    <a class="nav-item nav-link"
+                    href="{% url 'courses_app:course_register' course.id student.id %}">Cancel registration</a>
+                {% else %}
+                <a class="nav-item nav-link"
+                href="{% url 'courses_app:course_register' course.id student.id %}">Register to course
+                </a>
+                {% endif %}
+            {%  endif %}
             {% else %}
              <li><em>Course is not scheduled yet!</em>
         {% endif %}
