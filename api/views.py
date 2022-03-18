@@ -47,7 +47,7 @@ class StudentProfileViewSet(ViewSet):
         try:
             with transaction.atomic():
                 student_form = StudentForm(data=serializer.validated_data)
-                profile_form = StudentProfileForm(data=dict(profile_pic=None, category='student'))
+                profile_form = StudentProfileForm(data=dict(category='student'))
                 new_student = student_form.save()
                 new_student.set_password(new_student.password)
                 new_student.save()

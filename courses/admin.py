@@ -1,10 +1,20 @@
 from django.contrib import admin
-from django.contrib.admin.sites import AlreadyRegistered
-from django.apps import apps
+from courses.models import (
+    StudentProfile,
+    StudentProfileAdmin,
+    Course,
+    CourseAdmin,
+    Lecture,
+    LectureAdmin,
+    CourseRegistration,
+    CourseRegistrationAdmin,
+    CourseShedule,
+    CourseSheduleAdmin
+)
 
-app_models = apps.get_app_config('courses').get_models()
-for model in app_models:
-    try:
-        admin.site.register(model)
-    except AlreadyRegistered:
-        pass
+
+admin.site.register(StudentProfile, StudentProfileAdmin)
+admin.site.register(Course, CourseAdmin)
+admin.site.register(Lecture, LectureAdmin)
+admin.site.register(CourseRegistration, CourseRegistrationAdmin)
+admin.site.register(CourseShedule, CourseSheduleAdmin)
