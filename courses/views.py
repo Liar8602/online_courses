@@ -127,36 +127,31 @@ def course_detail(request, pk):
     return render(request, 'course_detail.html', context=context)
 
 
+def get_course_registration(course_id=None, student_id=None):
+    course_registration = CourseRegistration.objects.select_related('course', 'student').filter(
+        student_id=student_id,
+        course_id=course_id
+    ).first()
+    return course_registration
+
+
 @login_required
 def course_register(request, course_id, student_id):
-    student_registered = False
-    errors_string = None
-
-    if request.method == "POST":
-        course_registration_form = CourseRegistrationForm(data=request.POST)
-
-        if course_registration_form.is_valid():
-            course_registration_form.save()
-            student_registered = True
-            django_logger.info('successful course registration!')
-        else:
-            all_errors = []
-            for err_list in course_registration_form.errors.values():
-                all_errors.append(' '.join(err_list))
-            errors_string = ' '.join(all_error)
-    else:
-        course_registration = CourseRegistration.objects.filter(student_id=student_id, course_id=course_id).first()
-        student_registered = True if course_registration else False
-        course_registration_form = CourseRegistrationForm(
-            initial={
-                'student': StudentProfile.objects.filter(pk=student_id).first(),
-                'course': Course.objects.filter(pk=course_id).first()
-            }
-        )
+    user =request.user
+    student = user.student_profile if hasattr(user, 'student_profile') else None
+    course_registration = get_course_registration(course_id=course_id, student_id=student_id)
+    course = Course.objects.filter(pk=course_id).first()
+    if student_id == student.id and not course_registration and course:
+        CourseRegistration(student=student, course=course).save()
+    return HttpResponseRedirect(reverse('courses_app:course_detail', args={course_id}))
     
-    context = {
-        'errors': errors_string,
-        'course_registration_form': course_registration_form,
-        'student_registered': student_registered
-    }
-    return render(request, 'course_registration.html', context=context)
+
+
+@login_required
+def cancel_course_registration(request, course_id, student_id):
+    user = request.user
+    student = user.student_profile if hasattr(user, 'student_profile') else None
+    course_registration = get_course_registration(course_id=course_id, student_id=student_id)
+    if student_id == student.id and course_registration:
+        course_registration.delete()
+    return HttpResponseRedirect(reverse('courses_app:course_detail', args={course_id}))
