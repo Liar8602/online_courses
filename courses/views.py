@@ -8,7 +8,11 @@ from django.contrib.auth import authenticate, login, logout
 
 from .forms import StudentForm, StudentProfileForm, CourseRegistrationForm
 from settings.settings import django_logger
-from courses.models import (Course, CourseRegistration, StudentProfile)
+from courses.models import (
+    Course, 
+    CourseRegistration, 
+    StudentProfile
+)
 
 
 def index(request):
@@ -19,7 +23,7 @@ def index(request):
 @login_required
 def user_logout(request):
     logout(request)
-    django_logger.info(f'successful user logout: "{request.user.studentname}"')
+    django_logger.info(f'successful user logout: "{request.user.username}"')
     return HttpResponseRedirect(reverse('index'))
 
 
@@ -43,7 +47,7 @@ def user_login(request):
             errors_string = 'INVALID USERNAME OR PASSWORD!'
     
     context = {'active': "login", 'errors': errors_string}
-    return render(request, 'login.html', context)
+    return render(request, 'login.html', context=context)
 
 
 def user_register(request):
@@ -51,8 +55,7 @@ def user_register(request):
     errors_string = None
 
     if request.method == "POST":
-        user_form = StudentForm(data=request.POST)
-        profile_form = StudentProfileForm(data=request.POST)
+        user_form = StudentForm(data=request.POST)        
 
         if user_form.is_valid():
             user = user_form.save()
@@ -79,10 +82,8 @@ def user_register(request):
         'active': 'register',
         'errors': errors_string,
         'user_form': user_form,
-        'profile_form': profile_form,
         'registered': registered
     }
-    django_logger.info(f'successful user regisration: "{student_form.studentname}"')
     return render(request, 'registration.html', context=context)
 
 
@@ -97,19 +98,19 @@ def courses_list(request):
 @login_required
 def course_detail(request, pk):
     user = request.user
-    student = request.user.studentprofile if hasattr(user, 'studentprofile') else None
-    course = Course.objects\
-        .prefetch_related('lectures', 'schedules', 'registrations')\
-            .order_by('lectures__number_in_course')\
-            .get(pk=pk)
-    lectures = course.lectures
-    registrations = course.registrations
-    schedules = course.schedules
+    student = user.student_profile if hasattr(user, 'student_profile') else None
+    course = Course.objects \
+        .prefetch_related('lectures', 'schedules', 'registrations') \
+        .order_by('lectures__number_in_course') \
+        .get(pk=pk)
+    lectures = list(course.lectures.all())
+    registrations = list(course.registrations.all())
+    schedules = list(course.schedules.all())
     context = {
         'student': student,
         'course': course,
         'lectures': lectures,
-        'registrations': len(registrations) if registrations else 0,
+        'registrations': len(registrations) if registrations else 111,
         'scheduled': schedules[0].start_date if schedules else None,
     }
     return render(request, 'course_detail.html', context=context)

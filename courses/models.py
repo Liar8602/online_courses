@@ -4,8 +4,7 @@ from django.contrib.auth.models import User
 
 
 class StudentProfile(models.Model):
-    student = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student_profile')
-    profile_pic = models.ImageField(upload_to='profile_pics',blank=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student_profile')
     category = models.CharField(max_length=50, null=True)
 
     def __str__(self):
@@ -13,9 +12,9 @@ class StudentProfile(models.Model):
 
 
 class StudentProfileAdmin(admin.ModelAdmin):
-    list_display = ('student', 'category')
+    list_display = ('user', 'category')
     list_filter = ('category',)
-    fields = ['category', 'student']
+    fields = ['category', 'user',]
 
 class Course(models.Model):
     id = models.IntegerField(primary_key=True)
@@ -45,7 +44,7 @@ class CourseAdmin(admin.ModelAdmin):
 
 class LectureAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'course', 'number_in_course')
-    list_filter = ('id', 'course')
+    list_filter = ('id', 'course',)
     fields = [('id', 'number_in_course', 'title'), 'course']
 
 class CourseRegistration(models.Model):
@@ -62,7 +61,7 @@ class CourseRegistrationAdmin(admin.ModelAdmin):
 
 class CourseShedule(models.Model):
     id = models.IntegerField(primary_key=True)
-    course = models.ForeignKey('Course', related_name='shedules', on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, related_name='schedules', on_delete=models.CASCADE)
     start_date = models.DateField()
 
 

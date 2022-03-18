@@ -1,11 +1,15 @@
-{% load staticfiles %}
+{% load static %}
 
 {% block body_block %}
-    <h1>Detailed Course Description</h1>
-    <h2>Title: <em>{{ course.title }}</em> &nbsp;&nbsp; Price: {{ course.price }} USD
-    </h2>
-    <h2>Summary:</h2>
-    <h4>{{ course.description|safe }} </h4>
+    <div class="alert alert-dark text-center" role="alert">
+        <h2>Detailed Course Description</h2>
+    </div>
+
+    <div class="container col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
+        <h3>Title: <em>{{ course.title }}</em></h3>
+        <h3>Price: {{ course.price }}$ </h3>
+        <h2>Summary:</h2>
+        <h5>{{ course.description|safe }} </h5>
         {%  if lectures %}
             <h2>Lectures:</h2>
             {% for lecture in lectures %}
@@ -19,6 +23,11 @@
         {% else %}
              <li><em>No lectures added yet!</em>
         {% endif %}
+        {% if registrations %}
+            <h2>Registered: {{ registrations }} students</h2>
+        {% else %}
+            <li><em>No lectures added yet!</em>
+        {% endif %}
         {%  if scheduled %}
             <h2>Course will start: {{ scheduled }}</h2>
             {%  if student %}
@@ -30,7 +39,7 @@
              <li><em>Course is not scheduled yet!</em>
         {% endif %}
     <br><br>
-    <a href="/learn/courses_list/">Courses List</a>
+    <a href="/courses/courses_list/">Courses List</a>
     <br>
     <a href="/">Return to main page</a>
     <br><br><br><br>

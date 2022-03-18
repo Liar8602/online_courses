@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block body_block %}
+
+    <div class="alert alert-dark text-center" role="alert">
+        <h2>Courses List</h2>
+    </div>
+
+    <div class="container col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
+        <ul class="list-group">
+            {% if courses %}
+                {% for course in courses %}
+                    <li class="list-group-item list-group-item-action">
+                        <a href="/courses/course_detail/{{ course.id }}">
+                            Course ID: <em>{{ course.id }}&nbsp&nbsp</em>
+                            Title: <em>{{ course.title }}&nbsp&nbsp</em>
+                            Price: <em>{{ course.price }}$</em>
+                        </a>
+                    </li>
+                {% endfor %}
+            {% else %}
+                <li><em>Unbelievable. No entries here so far</em>
+            {% endif %}
+        </ul>
+    </div>
+{% endblock %}

@@ -27,6 +27,7 @@
             {% endif %}
             {% if user.is_authenticated %}
                 <a class="nav-item nav-link" href="{% url 'courses_app:user_logout' %}">Logout</a>
+                <a class="nav-item nav-link" href="{% url 'courses_app:courses_list' %}">Courses List</a>
             {% else %}
                 {% if active == 'register' %}
                     <a class="nav-item nav-link active" href="{% url 'courses_app:user_register' %}">Register</a>
