@@ -6,12 +6,11 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 
-from .forms import StudentForm, StudentProfileForm, CourseRegistrationForm
+from .forms import StudentForm, StudentProfileForm
 from settings.settings import django_logger
 from courses.models import (
     Course, 
-    CourseRegistration, 
-    StudentProfile
+    CourseRegistration
 )
 
 
@@ -89,8 +88,14 @@ def user_register(request):
 
 @login_required
 def courses_list(request):
+    user = request.user
+    student = user.student_profile if hasattr(user, 'student_profile') else None
+    courses = list(Course.objects.prefetch_related('registrations').all())
+    student_registrations = {course.id for course in courses if course.student_registered(student.id)}
     context = {
-        'courses': list(Course.objects.all())
+        'courses': courses,
+        'student_id': student.id if student else None,
+        'student_registrations': student_registrations,
     }
     return render(request, 'courses_list.html', context=context)
 
@@ -103,9 +108,9 @@ def course_detail(request, pk):
         .prefetch_related('lectures', 'schedules', 'registrations') \
         .order_by('lectures__number_in_course') \
         .get(pk=pk)
-    lectures = list(course.lectures.all())
-    registrations = list(course.registrations.all())
-    schedules = list(course.schedules.all())
+    lectures = course.lectures.all()
+    registrations = course.registrations.all()
+    schedules = course.schedules.all()
     for schedule in schedules:
         if date.today() <= schedule.start_date:
             scheduled = schedule.start_date
