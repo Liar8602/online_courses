@@ -99,15 +99,21 @@ def user_register(request):
     return render(request, 'registration.html', context=context)
 
 
+def get_student_registrations(student) -> set:
+    if student:
+        student_registrations = {
+            cr.course.id for cr in CourseRegistration.objects.select_related('course').filter(student_id=student.id).all()
+        }
+    else:
+        student_registrations = {}
+    return student_registrations
+
 @login_required
 def courses_list(request):
     user = request.user
     student = user.student_profile if hasattr(user, 'student_profile') else None
-    courses = list(Course.objects.prefetch_related('registrations').all())
-    if student:
-        student_registrations = {course.id for course in courses if course.student_registered(student.id)}
-    else:
-        student_registrations = []
+    courses = Course.objects.all()
+    student_registrations = get_student_registrations(student)
     context = {
         'courses': courses,
         'student_id': student.id if student else None,
@@ -196,13 +202,15 @@ def courses_calendar(request):
             for err_list in month_year_form.errors.values():
                 all_errors.append(' '.join(err_list))
     errors_string = ' '.join(all_errors)
-    schedules = CourseSchedule.objects.select_related('course').filter(
+    schedules_query = CourseSchedule.objects.select_related('course').filter(
         start_date__gte=date(year=year, month=month, day=1),
         start_date__lt=date(year=year + 2, month=month, day=monthrange(year, month)[1]),
     )
+    schedules = list(schedules_query)
+    student_registrations = get_student_registrations(student)
     scheduled_courses = []
     for sch in schedules:
-        registered = student and sch.course.student_registered(student.id)
+        registered = student and sch.course.id in student_registrations
         course_data = {
             'start_date': sch.start_date,
             'id': sch.course.id,
