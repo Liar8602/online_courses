@@ -1,4 +1,5 @@
 from datetime import date
+from calendar import monthrange
 
 from django.shortcuts import render
 from django.db import transaction, IntegrityError, DatabaseError
@@ -9,11 +10,12 @@ from django.contrib.auth import authenticate, login, logout
 
 from rest_framework.authtoken.models import Token
 
-from .forms import StudentForm, StudentProfileForm
+from .forms import StudentForm, StudentProfileForm, MonthYearForm
 from settings.settings import django_logger
 from courses.models import (
     Course, 
-    CourseRegistration
+    CourseRegistration,
+    CourseShedule
 )
 
 
@@ -171,3 +173,46 @@ def cancel_course_registration(request, course_id, student_id):
     if student_id == student.id and course_registration:
         course_registration.delete()
     return HttpResponseRedirect(reverse('courses_app:course_detail', args={course_id}))
+
+
+@login_required
+def courses_calendar(request):
+    user = request.user
+    student = user.student_profile if hasattr(user, 'student_profile') else None
+    today = date.today()
+    this_year = today.year
+    year = this_year
+    month = today.month
+    all_errors = []
+    if request.method == 'POST':
+        month_year_form = MonthYearForm(data=request.POST)
+        if month_year_form.is_valid():
+            year = month_year_form.cleaned_data['year']
+            month = month_year_form.cleaned_data['month']
+        else:
+            for err_list in month_year_form.errors.values():
+                all_errors.append(' '.join(err_list))
+    errors_string = ' '.join(all_errors)
+    schedules = CourseSchedule.objects.select_related('course').filter(
+        start_date__gte=date(year=year, month=month, day=1),
+        start_date__lt=date(year=year + 2, month=month, day=monthrange(year, month)[1]),
+    )
+    scheduled_courses = []
+    for sch in schedules:
+        course_data = {
+            'start_date': sch.start_date,
+            'id': sch.course.id,
+            'title': sch.course.title,
+            'student_registered': 'you are registered' if student and sch.course.student_registered(
+                student.id) else ''
+        }
+        scheduled_courses.append(course_data)
+    context = {
+        'month': month,
+        'year': year,
+        'all_months': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        'all_years': [this_year, this_year + 1, this_year + 2],
+        'courses': scheduled_courses,
+        "errors": errors_string,
+    }
+    return render(request, 'calendar.html', context=context)
