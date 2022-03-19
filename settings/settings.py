@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'rest_framework',
     'rest_framework.authtoken',
+    'django_rq',
 
     'courses.apps.CoursesConfig',
 ]
@@ -182,15 +183,40 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'stream': sys.stdout,
         },
+        "rq_console": {
+            "level": "DEBUG",
+            "class": "rq.utils.ColorizingStreamHandler",
+            "exclude": ["%(asctime)s"],
+        },
     },
     'loggers': {
         'django_logger': {
             'handlers': ['console'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
         },
+        "rq.worker": {
+            "handlers": ["rq_console", ],
+            "level": "DEBUG"
+        },
     },
 }
 logging.config.dictConfig(LOGGING)
 django_logger = logging.getLogger(name='django_logger')
+
+RQ_QUEUES = {
+    'default': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+    },
+    'low': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+        'DEFAULT_TIMEOUT': 360,
+    }
+}
+RQ_SHOW_ADMIN_LINK = True
+RQ_EXCEPTION_HANDLERS = []
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

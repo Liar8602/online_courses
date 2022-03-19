@@ -7,10 +7,12 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
+import django_rq
 
 from rest_framework.authtoken.models import Token
 
 from .forms import StudentForm, StudentProfileForm, MonthYearForm
+from .tasks import send_confirmation_mail
 from settings.settings import django_logger
 from courses.models import (
     Course, 
@@ -41,6 +43,7 @@ def user_login(request):
         if user:
             if user.is_active:
                 login(request, user)
+                django_rq.enqueue(send_confirmation_mail, user.email)
                 django_logger.info((f'successful user login: "{user.username}"'))
                 return HttpResponseRedirect(reverse('index'))
             else:
@@ -199,12 +202,12 @@ def courses_calendar(request):
     )
     scheduled_courses = []
     for sch in schedules:
+        registered = student and sch.course.student_registered(student.id)
         course_data = {
             'start_date': sch.start_date,
             'id': sch.course.id,
             'title': sch.course.title,
-            'student_registered': 'you are registered' if student and sch.course.student_registered(
-                student.id) else ''
+            'student_registered': 'you are registered' if registered else ''
         }
         scheduled_courses.append(course_data)
     context = {
