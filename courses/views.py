@@ -1,10 +1,13 @@
 from datetime import date
 
 from django.shortcuts import render
+from django.db import transaction, IntegrityError, DatabaseError
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
+
+from rest_framework.authtoken.models import Token
 
 from .forms import StudentForm, StudentProfileForm
 from settings.settings import django_logger
@@ -52,27 +55,32 @@ def user_login(request):
 def user_register(request):
     registered = False
     errors_string = None
+    all_errors = []
 
     if request.method == "POST":
         user_form = StudentForm(data=request.POST)        
 
         if user_form.is_valid():
-            user = user_form.save()
-            user.set_password(user.password)
-            user.save()
-
-            profile_form = StudentProfileForm(data={'category': 'student'})
-            profile = profile_form.save(commit=False)
-            profile.user = user
-            
-            profile.save()
-            registered = True
-            django_logger.info('successful student registration!')
+            try:
+                with transaction.atomic():
+                    user = user_form.save()
+                    user.set_password(user.password)
+                    user.save()
+                    
+                    profile_form = StudentProfileForm(data={'category': 'student'})
+                    profile = profile_form.save(commit=False)
+                    profile.user = user            
+                    profile.save()
+                    Token.objects.get_or_create(user=user)
+                    registered = True
+                    django_logger.info('successful student registration!')
+            except (IntegrityError, DatabaseError, Exception) as e:
+                all_errors.append(str(e))
+                registered = False
         else:
-            all_errors = []
             for err_list in user_form.errors.values():
                 all_errors.append(' '.join(err_list))
-            errors_string = ' '.join(all_errors)
+        errors_string = ' '.join(all_errors)
     else:
         registered = True if request.user.username else False
         user_form = StudentForm()
@@ -91,7 +99,10 @@ def courses_list(request):
     user = request.user
     student = user.student_profile if hasattr(user, 'student_profile') else None
     courses = list(Course.objects.prefetch_related('registrations').all())
-    student_registrations = {course.id for course in courses if course.student_registered(student.id)}
+    if student:
+        student_registrations = {course.id for course in courses if course.student_registered(student.id)}
+    else:
+        student_registrations = []
     context = {
         'courses': courses,
         'student_id': student.id if student else None,

@@ -4,22 +4,17 @@ from django.contrib.auth.models import User
 from rest_framework.viewsets import ViewSet
 from rest_framework.views import APIView
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework import status
-
+from rest_framework.authtoken.models import Token
 
 from courses.models import StudentProfile, Course, CourseRegistration
 from api.serailzers import StudentProfileSerializer, RegisterStudentSerializer, StudentUpdateSerializer, CourseSerializer, CourseRegistrationSerializer
 
 from settings.settings import django_logger
 
-from rest_framework.authtoken.models import Token
 
-
-for user in User.objects.all():
-    if user.is_active:
-        Token.objects.get_or_create(user=user)
 class StudentProfileViewSet(ViewSet):
     authentication_classes = (TokenAuthentication,)
 
@@ -51,6 +46,7 @@ class StudentProfileViewSet(ViewSet):
                 new_user.save()
                 new_student_profile = StudentProfile(user=new_user, category='student')
                 new_student_profile.save()
+                Token.objects.get_or_create(user=new_user)
         except (IntegrityError, DatabaseError, Exception) as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:

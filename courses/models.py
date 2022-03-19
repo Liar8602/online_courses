@@ -3,7 +3,6 @@ from django.contrib.auth.models import User
 
 
 class StudentProfile(models.Model):
-    id = models.IntegerField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student_profile')
     category = models.CharField(max_length=50, null=True)
 
@@ -12,7 +11,6 @@ class StudentProfile(models.Model):
 
 
 class Course(models.Model):
-    id = models.IntegerField(primary_key=True)
     title = models.CharField(max_length=400)
     number_of_lectures = models.IntegerField()
     description = models.TextField()
@@ -22,21 +20,20 @@ class Course(models.Model):
         return self.registrations.filter(student_id=student_id).first()
 
 class Lecture(models.Model):
-    id = models.IntegerField(primary_key=True)
     title = models.CharField(max_length=200)
     course = models.ForeignKey(Course, related_name='lectures', on_delete=models.SET_NULL, null=True)
     number_in_course = models.IntegerField()
 
 
-
-
 class CourseRegistration(models.Model):
-    id = models.IntegerField(primary_key=True)
-    student = models.ForeignKey(StudentProfile, related_name='courses_registrations', on_delete=models.CASCADE)
+    student = models.ForeignKey(
+        StudentProfile, 
+        related_name='courses_registrations',
+        on_delete=models.CASCADE
+    )
     course = models.ForeignKey(Course, related_name='registrations',on_delete=models.CASCADE)
 
 
 class CourseShedule(models.Model):
-    id = models.IntegerField(primary_key=True)
     course = models.ForeignKey(Course, related_name='schedules', on_delete=models.CASCADE)
     start_date = models.DateField()
