@@ -12,7 +12,7 @@ urlpatterns = [
     path('', index, name='index'),
     path('index/', index, name='index'),
     path('courses/', include(courses.urls)),
-    path('api/v1/', include(api.urls)),
+    path('api/v1/', include(api.urls), name='api'),
 ]
 
 

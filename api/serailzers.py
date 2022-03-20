@@ -84,13 +84,33 @@ class CourseSerializer(serializers.ModelSerializer):
         )
 
 
+class ShortCourseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Course
+        fields = (
+            'id',
+            'title',
+            'price',
+            'number_of_lectures',
+            'description',
+        )
+
+
 class CourseRegistrationSerializer(serializers.ModelSerializer):
     student = StudentUsernameSerializer()
-    course = CourseSerializer()
+    course = ShortCourseSerializer()
 
     class Meta:
         model = CourseRegistration
-        fields = ('id', 'student', 'course',)
+        fields = ('student', 'course',)
+
+
+class CourseRegistrationParamsSerializer(serializers.Serializer):
+    student = serializers.PrimaryKeyRelatedField(queryset=StudentProfile.objects)
+    course = serializers.PrimaryKeyRelatedField(queryset=Course.objects)
+
+    class Meta:
+        fields = ('student', 'course')
 
 
 class StudentProfileSerializer(serializers.ModelSerializer):

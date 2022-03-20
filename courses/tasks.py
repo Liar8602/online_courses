@@ -7,7 +7,11 @@ from .models import CourseShedule, CourseRegistration
 
 
 @job('default')
-def send_confirmation_mail(user_name=None, user_mail=None):
+def send_confirmation_mail(user_mail=None):
+    subject = 'Thank you for registering!'
+    message = f"""
+        Thank You for registering!"""
+    send_mail(subject, message, DEFAULT_FROM_EMAIL, [user_mail, ], fail_silently=True)
     django_logger.info(f'\nsending confilrmation mail to {user_mail if user_mail else " - "}')
     return True
 

@@ -1,8 +1,7 @@
 from django.db import transaction, IntegrityError, DatabaseError
 from django.contrib.auth.models import User
-
+import django_rq
 from rest_framework.viewsets import ViewSet
-from rest_framework.views import APIView
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
@@ -10,10 +9,18 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 
 from courses.models import StudentProfile, Course, CourseRegistration
-from api.serailzers import StudentProfileSerializer, RegisterStudentSerializer, StudentUpdateSerializer, CourseSerializer, CourseRegistrationSerializer
+from api.serailzers import (
+    StudentProfileSerializer, 
+    RegisterStudentSerializer, 
+    StudentUpdateSerializer, 
+    CourseSerializer, 
+    CourseRegistrationSerializer, 
+    CourseRegistrationParamsSerializer
+)
 
 from settings.settings import django_logger
 
+from courses.tasks import send_confirmation_mail
 
 class StudentProfileViewSet(ViewSet):
     authentication_classes = (TokenAuthentication,)
@@ -78,6 +85,7 @@ class StudentProfileViewSet(ViewSet):
         except(IntegrityError, DatabaseError, Exception) as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
+            django_rq.enqueue(send_confirmation_mail, new_user.email)
             return Response(serializer.validated_data) 
      
     def destroy(self, request, pk=None):
@@ -90,7 +98,7 @@ class StudentProfileViewSet(ViewSet):
 
 
 class CourseViewSet(ViewSet):
-
+    authentication_classes = (TokenAuthentication,)
     def get_permissions(self):
         """
         Instantiates and returns the list of permissions that this view requires.
@@ -125,21 +133,73 @@ class CourseViewSet(ViewSet):
         return Response(self.course_serializer(course).data)
 
     
-class StudentCourseRegistrationView(APIView):
+class StudentCourseRegistrationViewSet(ViewSet):
     authentication_classes = (TokenAuthentication,)
-    serializer_class = CourseRegistrationSerializer
+    registration_serializer = CourseRegistrationSerializer
+    params_serializer = CourseRegistrationParamsSerializer
+    queryset =CourseRegistration.objects.prefetch_related('student', 'course')
+    error_message = 'user is not allowed to run request'
 
-    def post(self, request, course_id, student_id):
+    @staticmethod
+    def user_allowed_to_run_request(authorized_user: User, student_param: StudentProfile) -> bool:
+        if authorized_user.is_staff or authorized_user.is_superuser:
+            return True
+        if not hasattr(authorized_user, 'student_profile'):
+            return False
+        if student_param.pk != authorized_user.student_profile.pk:
+            return False
+        return True
+    
+    def create(self, request):
+        user = request.user
+        params_data = self.params_serializer(data=request.query_params)
+        params_data.is_valid(raise_exception=True)
+        course = params_data.validated_data['course']
+        student = params_data.validated_data['student']
+
+        if not self.user_allowed_to_run_request(user, student):
+            return Response({'detail': self.error_message}, status=status.HTTP_403_FORBIDDEN)
+
         registration = CourseRegistration.objects.filter(
-            student_id=student_id,
-            course_id=course_id
+            student_id=student.pk,
+            course_id=course.pk
             ).first()
         if not registration:
             try:
-                student = StudentProfile.objects.get(pk=student_id)
-                course = Course.objects.get(pk=course_id)
-                registration = CourseRegistration(student=student, course=course)
+                registration = CourseRegistration(student=student, course=params_data.validated_data['course'])
                 registration.save()
-            except (IntegrityError, DatabaseError, Exception) as e:
+            except (DatabaseError, Exception) as e:                
                 return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(self.serializer_class(registration).data)
+        return Response({'registration_id': registration.pk}, status=status.HTTP_200_OK)
+
+    def destroy(self, request, pk=None):
+        user = request.user
+        params_data = self.params_serializer(data=request.query_params)
+        params_data.is_valid(raise_exception=True)
+        course = params_data.validated_data['course']
+        student = params_data.validated_data['student']
+
+        if not self.user_allowed_to_run_request(user, student):
+            return Response({'detail': self.error_message}, status=status.HTTP_403_FORBIDDEN)
+
+        registration = CourseRegistration.objects.filter(
+            student_id=student.pk,
+            course_id= course.pk
+        ).first()
+        if registration:
+            try:
+                registration.delete()
+            except (DatabaseError, Exception) as e:
+                return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({}, status=status.HTTP_200_OK)
+
+    def list(self, request):
+        serializer = self.registration_serializer(self.queryset, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, pk=None):
+        course = self.queryset.filter(id=pk).first()
+        return Response(self.registration_serializer(course).data)
+
+    def update(self, request, pk=None):
+        return Response({'detail': 'not implemented yet'}, status=status.HTTP_404_NOT_FOUND)
