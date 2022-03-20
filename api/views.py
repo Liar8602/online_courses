@@ -1,26 +1,36 @@
+from datetime import date
+from calendar import monthrange
 from django.db import transaction, IntegrityError, DatabaseError
 from django.contrib.auth.models import User
 import django_rq
 from rest_framework.viewsets import ViewSet
+from rest_framework.views import APIView
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 
-from courses.models import StudentProfile, Course, CourseRegistration
+from courses.models import (
+    StudentProfile, 
+    Course, 
+    CourseRegistration,
+    CourseShedule,
+)
 from api.serailzers import (
     StudentProfileSerializer, 
     RegisterStudentSerializer, 
     StudentUpdateSerializer, 
     CourseSerializer, 
     CourseRegistrationSerializer, 
-    CourseRegistrationParamsSerializer
+    CourseRegistrationParamsSerializer,
+    CourseSheduleSerializer,
+    MonthYearSerializer,
 )
 
 from settings.settings import django_logger
 
-from courses.tasks import send_confirmation_mail
+from courses.tasks import send_registration_confirmation_mail
 
 class StudentProfileViewSet(ViewSet):
     authentication_classes = (TokenAuthentication,)
@@ -57,6 +67,7 @@ class StudentProfileViewSet(ViewSet):
         except (IntegrityError, DatabaseError, Exception) as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
+            send_registration_confirmation_mail(username=new_user.username, email=new_user.email)
             return Response(serializer.validated_data)
 
 
@@ -203,3 +214,20 @@ class StudentCourseRegistrationViewSet(ViewSet):
 
     def update(self, request, pk=None):
         return Response({'detail': 'not implemented yet'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class MonthCourseCalendarView(APIView):
+    authentication_classes = (TokenAuthentication,)
+    calendar_serializer = CourseSheduleSerializer
+    params_serializer = MonthYearSerializer
+
+    def get(self, request):
+        params_data = self.params_serializer(data=request.query_params)
+        params_data.is_valid(raise_exception=True)
+        month = params_data.validated_data['month']
+        year = params_data.validated_data['year']
+        schedules_query = CourseShedule.objects.selected_related('course').filter(
+            start_date__gte=date(year=year, month=month, day=1),
+            start_date__lt=date(year=year, month=month, day=monthrange(year, month)[1]),
+        )
+        return Response(self.calendar_serializer(schedules_query, many=True).data, status=status.HTTP_200_OK)

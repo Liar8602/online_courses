@@ -1,16 +1,24 @@
 from datetime import timedelta, date
-from django_rq import job
+from django_rq import job, enqueue
 
 from django.core.mail import send_mass_mail, send_mail
 from settings.settings import DEFAULT_FROM_EMAIL, django_logger
 from .models import CourseShedule, CourseRegistration
 
 
-@job('default')
-def send_confirmation_mail(user_mail=None):
+def send_registration_confirmation_mail(username: str=None, email: str = None):
     subject = 'Thank you for registering!'
     message = f"""
         Thank You for registering!"""
+    enqueue(
+        send_mail_to_student,
+        user_mail=email,
+        subject=subject,
+        message=message
+    )
+
+@job('default')
+def send_mail_to_student(user_mail: str = None, subject: str = None, message: str = None):
     send_mail(subject, message, DEFAULT_FROM_EMAIL, [user_mail, ], fail_silently=True)
     django_logger.info(f'\nsending confilrmation mail to {user_mail if user_mail else " - "}')
     return True

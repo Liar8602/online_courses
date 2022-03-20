@@ -1,3 +1,4 @@
+from datetime import date
 from rest_framework import serializers
 
 from django.contrib.auth.models import User
@@ -54,6 +55,12 @@ class LectureSerializer(serializers.ModelSerializer):
 class CourseSheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = CourseShedule
+        fields = '__all__'
+
+
+class ShortScheduleSerializer(serializers.ModelSerializer):    
+    class Meta:
+        model = CourseShedule
         exclude = ('course',)
 
 
@@ -67,7 +74,7 @@ class ShortCourseRegistrationSerializer(serializers.ModelSerializer):
 
 class CourseSerializer(serializers.ModelSerializer):
     lectures = LectureSerializer(many=True)
-    shedules = CourseSheduleSerializer(many=True)
+    shedules = ShortScheduleSerializer(many=True)
     registrations = ShortCourseRegistrationSerializer(many=True)
 
     class Meta:
@@ -102,7 +109,7 @@ class CourseRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CourseRegistration
-        fields = ('student', 'course',)
+        fields = '__all__'
 
 
 class CourseRegistrationParamsSerializer(serializers.Serializer):
@@ -120,3 +127,19 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentProfile
         fields = ('user', 'courses_registrations',)
+
+
+class MonthYearSerializer(serializers.Serializer):
+    month = serializers.IntegerField(required=False, min_value=1, max_value=12)
+    year = serializers.IntegerField(
+        required=False,
+        min_value=date.today().year,
+        max_value=date.today().year + 1
+    )
+
+    def validate(self, attrs):
+        if attrs.get('month') is None:
+            attrs['month'] = date.today().month
+        if attrs.get('year') is None:
+            attrs['year'] = date.today().year
+        return attrs
