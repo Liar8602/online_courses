@@ -15,4 +15,5 @@ urlpatterns = [
         'cancel_course_registration/<int:course_id>/<int:student_id>',
         views.cancel_course_registration, name='cancel_course_registration'
     ),
+    path('start_email_scheduler/', views.admin_start_email_scheduler, name='start_email_scheduler'),
 ]

@@ -170,6 +170,8 @@ cython_debug/
 
 # Django stuff:
 static
+courses/migrations
+settings/local_settings
 # Flask stuff:
 
 # Scrapy stuff:
